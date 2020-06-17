@@ -1,4 +1,4 @@
-module github.com/thomasbanghart/looker-map-layers
+module github.com/thomasbanghart/go-looker-map-layers
 
 go 1.14
 
