@@ -1,0 +1,28 @@
+{
+  "name": "geojson-vt-exporter",
+  "version": "1.0.0",
+  "description": "Export geojson to vector tiles",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "extents": "node extents.js"
+  },
+  "author": "Wil Gieseler",
+  "license": "MIT",
+  "dependencies": {
+    "artillery-async": "^1.0.2",
+    "event-stream": "^3.3.4",
+    "filendir": "1.0.0",
+    "geojson-extent": "0.3.2",
+    "geojson-stream": "mapbox/geojson-stream",
+    "geojson-vt": "2.1.8",
+    "left-pad": "1.1.0",
+    "oboe": "2.1.2",
+    "rimraf": "2.5.2",
+    "shelljs": "^0.7.5",
+    "sphericalmercator": "1.0.5",
+    "tmp": "0.0.31",
+    "vt-pbf": "2.0.2",
+    "web-mercator-tiles": "wilg/web-mercator-tiles"
+  }
+}
