@@ -20,13 +20,17 @@ func printUsage() {
 
 func uploadTileset(mapBox *mapbox.Mapbox, path string) {
 	// Upload the geojson to mapbox
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Print("Please enter the feature key for the extents file: ")
+	featureKey, _ := reader.ReadString('\n')
 	extentsCh := make(chan int)
-	go makeExents(mapBox, path, extentsCh)
+	go makeExents(mapBox, path, extentsCh, featureKey)
 	newlinePath, err := newlineGeoJSON(path)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
+	fmt.Println(newlinePath)
 	req, err := mapBox.Tilesets.UploadGeoJSON(newlinePath)
 	fmt.Printf("Uploading to Mapbox... might take a moment...\n\n")
 	if err != nil {
@@ -54,7 +58,7 @@ func newlineGeoJSON(path string) (string, error) {
 	return "./newline.json", nil
 }
 
-func makeExents(mapBox *mapbox.Mapbox, path string, extentsCh chan int) {
+func makeExents(mapBox *mapbox.Mapbox, path string, extentsCh chan int, featureKey string) {
 	os.Chdir("./vector-map-scripts-master")
 	cmd := exec.Command("pwd")
 	stdout, err := cmd.Output()
@@ -64,9 +68,6 @@ func makeExents(mapBox *mapbox.Mapbox, path string, extentsCh chan int) {
 		extentsCh <- 1
 		return
 	}
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Print("Please enter the feature key for the extents file: ")
-	featureKey, _ := reader.ReadString('\n')
 	cmd = exec.Command("yarn", "run", "extents", path, "../extents.json", featureKey)
 	fmt.Println(cmd)
 	stdout, err = cmd.Output()
