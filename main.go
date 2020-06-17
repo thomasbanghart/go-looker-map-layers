@@ -6,6 +6,8 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path"
+	"runtime"
 
 	mapbox "github.com/ryankurte/go-mapbox/lib"
 )
@@ -18,28 +20,40 @@ func printUsage() {
 
 }
 
-func uploadTileset(mapBox *mapbox.Mapbox, path string) {
-	// Upload the geojson to mapbox
+func uploadTileset(mapBox *mapbox.Mapbox, _path string) {
+	//upload the geojson to mapbox
 	reader := bufio.NewReader(os.Stdin)
+
+	//prompt for feature key
 	fmt.Print("Please enter the feature key for the extents file: ")
 	featureKey, _ := reader.ReadString('\n')
+
+	//set up channel to make extents while file uploads
 	extentsCh := make(chan int)
-	go makeExents(mapBox, path, extentsCh, featureKey)
-	newlinePath, err := newlineGeoJSON(path)
+	go makeExents(mapBox, _path, extentsCh, featureKey)
+
+	//turn geoJSON into newline geoJSON
+	err := newlineGeoJSON(_path)
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 		return
 	}
-	fmt.Println(newlinePath)
-	req, err := mapBox.Tilesets.UploadGeoJSON(newlinePath)
+
+	//get path to calling directory to keep things happy and hit upload
+	_, filename, _, _ := runtime.Caller(1)
+	filepath := path.Join(path.Dir(filename), "/newline.json")
+	req, err := mapBox.Tilesets.UploadGeoJSON(filepath)
 	fmt.Printf("Uploading to Mapbox... might take a moment...\n\n")
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 		return
 	}
-	//Print out the ID for the recipe.json file
+
+	//print out the ID for the recipe.json file
 	fmt.Println(req.ID)
 	fmt.Println("Update the tileset-recipe.json file with the above id...")
+
+	//wait for exents creation to finish before returning
 	if <-extentsCh > 0 {
 		fmt.Println("Check that extents file -- something went wrong")
 	}
@@ -48,31 +62,26 @@ func uploadTileset(mapBox *mapbox.Mapbox, path string) {
 
 }
 
-func newlineGeoJSON(path string) (string, error) {
+func newlineGeoJSON(path string) error {
+	//runs a handy npm package to create newline geoJSON -- needed for Mapbox API
 	cmd := fmt.Sprintf("geojson2ndjson %s > ../newline.json", path)
+
+	//redirection using > is a bash specific call
 	newline := exec.Command("bash", "-c", cmd)
 	_, err := newline.Output()
 	if err != nil {
-		return "", err
+		return err
 	}
-	return "./newline.json", nil
+	return nil
 }
 
 func makeExents(mapBox *mapbox.Mapbox, path string, extentsCh chan int, featureKey string) {
+	//have to use "yarn run" within the directory and write to main directory
 	os.Chdir("./vector-map-scripts-master")
-	cmd := exec.Command("pwd")
+	cmd := exec.Command("yarn", "run", "extents", path, "../extents.json", featureKey)
 	stdout, err := cmd.Output()
-	fmt.Println(string(stdout))
-
 	if err != nil {
-		extentsCh <- 1
-		return
-	}
-	cmd = exec.Command("yarn", "run", "extents", path, "../extents.json", featureKey)
-	fmt.Println(cmd)
-	stdout, err = cmd.Output()
-	if err != nil {
-		fmt.Println(string(stdout))
+		log.Fatal(string(stdout))
 		extentsCh <- 1
 		return
 	}
@@ -82,6 +91,7 @@ func makeExents(mapBox *mapbox.Mapbox, path string, extentsCh chan int, featureK
 }
 
 func createTileset(mapBox *mapbox.Mapbox) {
+	//create a tileset for the sources page on Mapbox
 	req, err := mapBox.Tilesets.CreateTileset("./tileset-recipe.json")
 	if err != nil {
 		fmt.Println(err)
@@ -92,6 +102,7 @@ func createTileset(mapBox *mapbox.Mapbox) {
 }
 
 func publishTileset(mapBox *mapbox.Mapbox) {
+	//Publish the tileset
 	req, err := mapBox.Tilesets.PublishTileset()
 	if err != nil {
 		fmt.Println(err)
@@ -120,6 +131,7 @@ func main() {
 	//Populate it with id and username for tileset
 	mapBox.Tilesets.SetTileset(username, tilesetID)
 
+	//switch to handle command line args
 	switch command {
 	case "upload":
 		if len(args) < 3 {
