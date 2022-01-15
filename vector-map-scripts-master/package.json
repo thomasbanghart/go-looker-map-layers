@@ -19,7 +19,7 @@
     "left-pad": "1.1.0",
     "oboe": "2.1.2",
     "rimraf": "2.5.2",
-    "shelljs": "^0.7.5",
+    "shelljs": "^0.8.5",
     "sphericalmercator": "1.0.5",
     "tmp": "0.0.31",
     "vt-pbf": "2.0.2",
